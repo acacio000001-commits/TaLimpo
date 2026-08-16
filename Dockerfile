@@ -17,8 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Ferramentas OSINT. Instaladas em camada separada porque são pesadas e
 # mudam pouco — mantém o rebuild rápido no free tier.
-RUN pip install --no-cache-dir "holehe==1.61" "maigret==0.5.0a1" || \
-    pip install --no-cache-dir holehe maigret
+# Ferramentas OSINT opcionais. NUNCA podem derrubar o build: se o PyPI estiver
+# instável (erros 502) ou faltar wheel, o conector apenas aparece indisponível.
+RUN pip install --no-cache-dir holehe maigret \
+    || echo "AVISO: holehe/maigret nao instalados; conectores ficarao indisponiveis"
 
 # theHarvester puxa muita dependência; se o build falhar o conector apenas
 # aparece como indisponível, sem derrubar a imagem.
