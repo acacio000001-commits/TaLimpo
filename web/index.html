@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Investiga — painel de apuração</title>
+  <meta name="description" content="Painéis de investigação sobre fontes públicas, com dossiê e trilha de auditoria.">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%94%8E</text></svg>">
+</head>
+<body>
+
+  <!-- =============================================================== LOGIN -->
+  <div id="tela-login" class="tela-login">
+    <form class="caixa-login" id="form-login">
+      <h1>Investiga</h1>
+      <p class="sub">Apuração sobre fontes públicas. Acesso restrito e registrado.</p>
+
+      <div class="campo">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" autocomplete="username" required>
+      </div>
+      <div class="campo">
+        <label for="login-senha">Senha</label>
+        <input type="password" id="login-senha" autocomplete="current-password" required>
+      </div>
+
+      <button class="botao" style="width:100%" type="submit" id="botao-entrar">Entrar</button>
+      <div class="erro-texto" id="erro-login"></div>
+    </form>
+  </div>
+
+  <!-- ================================================================ APP -->
+  <div id="app" class="app oculto">
+    <aside class="barra-lateral">
+      <div class="marca"><span class="selo">🔎</span> Investiga</div>
+
+      <button class="nav-item" data-rota="modulos">▦ Módulos</button>
+      <button class="nav-item" data-rota="pessoa"  data-painel="pessoa">👤 Pessoa</button>
+      <button class="nav-item" data-rota="empresa" data-painel="empresa">🏢 Empresa</button>
+      <button class="nav-item" data-rota="digital" data-painel="digital">🌐 Rastro digital</button>
+      <button class="nav-item" data-rota="casos"   data-painel="casos">📁 Casos</button>
+      <button class="nav-item" data-rota="admin"   data-painel="admin">⚙ Administração</button>
+
+      <div class="rodape-lateral">
+        <div class="nome" id="rodape-nome">—</div>
+        <div class="perfil" id="rodape-perfil">—</div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="botao secundario pequeno" id="botao-tema">Tema</button>
+          <button class="botao secundario pequeno" id="botao-sair">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="conteudo" id="conteudo"></main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
