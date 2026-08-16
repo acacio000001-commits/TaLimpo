@@ -159,21 +159,145 @@ th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--bor
 th { color: var(--texto-fraco); font-weight: 550; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
 
 /* --------------------------------------------------------- cards de fonte */
-.cartao-fonte { border-left: 3px solid var(--borda); }
+.cartao-fonte {
+  border-left: 3px solid var(--borda);
+  animation: entra-cima .3s cubic-bezier(.2, .7, .2, 1) both;
+}
 .cartao-fonte.rodando { border-left-color: var(--info); }
 .cartao-fonte.ok { border-left-color: var(--ok); }
 .cartao-fonte.vazio { border-left-color: var(--texto-fraco); }
 .cartao-fonte.erro { border-left-color: var(--erro); }
 .cabecalho-fonte { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
 .cabecalho-fonte strong { font-size: 14px; }
+.fonte-descricao { color: var(--texto-fraco); font-size: 12px; margin: 0 0 10px; }
+
+/* linha de achado — clicável, abre a ficha */
+.linha-achado {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 11px 10px; margin: 0 -10px;
+  border-top: 1px solid var(--borda); font-size: 13px;
+  animation: entra-cima .2s ease both;
+}
+.linha-achado:first-of-type { border-top: none; }
+.linha-achado[role="button"] { cursor: pointer; transition: background .13s ease; }
+.linha-achado[role="button"]:hover { background: var(--superficie-2); }
+.linha-achado[role="button"]:hover .ver-detalhe { opacity: 1; transform: none; }
+.linha-achado[role="button"]:active { background: color-mix(in srgb, var(--superficie-2) 70%, var(--borda)); }
+.linha-achado[role="button"]:focus-visible { outline: 2px solid var(--primaria); outline-offset: -2px; border-radius: 8px; }
+.linha-achado.sem-clique { color: var(--texto-fraco); }
+.linha-achado-texto { flex: 1; min-width: 0; }
+.linha-achado-acoes { display: flex; align-items: center; gap: 14px; white-space: nowrap; }
+.ver-detalhe {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--primaria); font-size: 12px; font-weight: 500;
+  opacity: .55; transform: translateX(-4px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.achado-link { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; }
+.ic { flex: none; }
+
+/* achado simples — usado na timeline dos casos e no extrator */
 .achado { padding: 9px 0; border-top: 1px solid var(--borda); font-size: 13px; }
 .achado:first-of-type { border-top: none; }
-.achado .bruto {
-  margin-top: 6px; font-family: var(--mono); font-size: 11px;
-  color: var(--texto-fraco); white-space: pre-wrap; word-break: break-word;
-  max-height: 200px; overflow: auto;
+
+/* ------------------------------------------------------- ficha (modal) */
+.modal-fundo {
+  position: fixed; inset: 0; z-index: 1000;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(0, 0, 0, .55); backdrop-filter: blur(3px);
+  opacity: 0; transition: opacity .2s ease;
 }
-.achado summary { cursor: pointer; color: var(--texto-fraco); font-size: 12px; }
+.modal-fundo.aberto { opacity: 1; }
+.modal-cartao {
+  width: 100%; max-width: 640px; max-height: 86vh; overflow: auto;
+  background: var(--superficie); border: 1px solid var(--borda); border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  opacity: 0; transform: translateY(10px) scale(.98);
+  transition: opacity .22s ease, transform .22s cubic-bezier(.2, .7, .2, 1);
+}
+.modal-fundo.aberto .modal-cartao { opacity: 1; transform: none; }
+.modal-cabecalho {
+  position: sticky; top: 0; z-index: 1; background: var(--superficie);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 18px 20px; border-bottom: 1px solid var(--borda);
+}
+.modal-cabecalho h3 { margin: 0; font-size: 15px; line-height: 1.45; }
+.modal-fechar {
+  flex: none; background: none; border: none; color: var(--texto-fraco);
+  cursor: pointer; padding: 4px; border-radius: 7px; display: grid; place-items: center;
+}
+.modal-fechar:hover { background: var(--superficie-2); color: var(--texto); }
+.modal-corpo { padding: 6px 20px; }
+.modal-rodape { padding: 12px 20px 20px; }
+
+.ficha-linha {
+  display: grid; grid-template-columns: 40% 1fr; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--borda); font-size: 13px;
+}
+.ficha-linha:last-child { border-bottom: none; }
+.ficha-rot { color: var(--texto-fraco); }
+.ficha-val { color: var(--texto); font-variant-numeric: tabular-nums; word-break: break-word; }
+.ficha-bloco { margin-top: 16px; }
+.ficha-bloco-tit {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--texto-fraco); margin-bottom: 8px;
+}
+.ficha-subcard {
+  background: var(--fundo); border: 1px solid var(--borda);
+  border-radius: 10px; padding: 8px 12px; margin-bottom: 8px;
+}
+.ficha-subcard .ficha-linha { grid-template-columns: 42% 1fr; padding: 7px 0; }
+
+@keyframes entra-cima {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes entra-suave { from { opacity: 0; } to { opacity: 1; } }
+
+/* ==================================================== animações globais ==
+   Transições em todo o site. Como cada tela recria o innerHTML ao navegar,
+   estas animações tocam de novo a cada troca de painel — dá a sensação de
+   transição de página sem framework. Só transform/opacity (sem reflow). */
+
+/* transição de página: o cabeçalho entra a cada navegação */
+.cabecalho-pagina { animation: entra-cima .3s cubic-bezier(.2, .7, .2, 1) both; }
+
+/* login surgindo */
+.caixa-login { animation: entra-cima .35s cubic-bezier(.2, .7, .2, 1) both; }
+
+/* módulos e números — entrada escalonada (stagger) */
+.grade > .modulo,
+.grade-numeros > .cartao {
+  animation: entra-cima .34s cubic-bezier(.2, .7, .2, 1) both;
+}
+.grade > .modulo:nth-child(1), .grade-numeros > .cartao:nth-child(1) { animation-delay: .02s; }
+.grade > .modulo:nth-child(2), .grade-numeros > .cartao:nth-child(2) { animation-delay: .07s; }
+.grade > .modulo:nth-child(3), .grade-numeros > .cartao:nth-child(3) { animation-delay: .12s; }
+.grade > .modulo:nth-child(4), .grade-numeros > .cartao:nth-child(4) { animation-delay: .17s; }
+.grade > .modulo:nth-child(5), .grade-numeros > .cartao:nth-child(5) { animation-delay: .22s; }
+.grade > .modulo:nth-child(n+6) { animation-delay: .26s; }
+
+/* tabelas (casos, admin) — leve fade ao aparecer */
+.cartao table { animation: entra-suave .35s ease both; }
+
+/* micro-interações de clique */
+.botao { transition: filter .15s ease, transform .08s ease, background .15s ease; }
+.botao:active { transform: scale(.97); }
+.nav-item { transition: background .13s ease, color .13s ease, transform .08s ease; }
+.nav-item:active { transform: scale(.98); }
+.modulo { will-change: transform; }
+
+/* ===================================================== menos movimento ==
+   Respeita quem ativou "reduzir movimento" no sistema: desliga tudo. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: .001ms !important;
+  }
+  .modal-fundo, .modal-cartao { opacity: 1 !important; transform: none !important; }
+}
 
 .girando { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--borda); border-top-color: var(--info); border-radius: 50%; animation: girar .7s linear infinite; }
 @keyframes girar { to { transform: rotate(360deg); } }

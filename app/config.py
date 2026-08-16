@@ -36,6 +36,9 @@ CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",")
 DATAJUD_API_KEY = os.environ.get("DATAJUD_API_KEY", "").strip()
 PORTAL_TRANSPARENCIA_KEY = os.environ.get("PORTAL_TRANSPARENCIA_KEY", "").strip()
 
+# YouTube Data API v3 — chave grátis no Google Cloud. Vazio = conector desligado.
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY", "").strip()
+
 # Banco SEPARADO com a base pública de CNPJ + sócios da Receita (>100 GB).
 # Vazio = o conector de cruzamento de sócios fica desligado. Ver db/002_socios.sql.
 SOCIOS_DATABASE_URL = os.environ.get("SOCIOS_DATABASE_URL", "").strip()

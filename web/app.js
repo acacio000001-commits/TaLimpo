@@ -14,6 +14,7 @@ const estado = {
   rota: 'modulos',
   caso: null,
   casos: [],
+  resultados: {},   // achados da última busca, por chave de fonte (para a ficha)
 };
 
 const MODULOS = [
@@ -145,6 +146,141 @@ async function telaModulos() {
   } catch (_) { el('numeros').innerHTML = ''; }
 }
 
+// --------------------------------------------------- ficha de detalhe (modal)
+const SVG = {
+  fechar: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  externo: '<svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
+  chevron: '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+};
+
+// Rótulos amigáveis para os campos crus das fontes.
+const FIELD_LABELS = {
+  razao_social: 'Razão social', nome_fantasia: 'Nome fantasia',
+  descricao_situacao_cadastral: 'Situação cadastral', situacao_cadastral: 'Situação cadastral',
+  data_situacao_cadastral: 'Data da situação', data_inicio_atividade: 'Início da atividade',
+  cnae_fiscal: 'CNAE principal', cnae_fiscal_descricao: 'Atividade principal',
+  capital_social: 'Capital social', natureza_juridica: 'Natureza jurídica', porte: 'Porte',
+  logradouro: 'Logradouro', numero: 'Número', complemento: 'Complemento', bairro: 'Bairro',
+  municipio: 'Município', uf: 'UF', cep: 'CEP', email: 'E-mail',
+  ddd_telefone_1: 'Telefone', ddd_telefone_2: 'Telefone 2',
+  nome_socio: 'Sócio', qualificacao_socio: 'Qualificação', faixa_etaria: 'Faixa etária',
+  data_entrada_sociedade: 'Entrada na sociedade', cnpj: 'CNPJ',
+  opcao_pelo_simples: 'Optante pelo Simples', opcao_pelo_mei: 'MEI',
+  cnaes_secundarios: 'Atividades secundárias', qsa: 'Quadro societário',
+  fqdn: 'Domínio', status: 'Situação', 'expires-at': 'Expira em', hosts: 'Servidores de nome',
+  descricao: 'Descrição', codigo: 'Código', nome: 'Nome', valor: 'Valor',
+  street: 'Logradouro', neighborhood: 'Bairro', city: 'Cidade', state: 'Estado',
+  territory_name: 'Município', state_code: 'UF', date: 'Data',
+  // HTTP check
+  url_final: 'Endereço final', servidor: 'Servidor', content_type: 'Tipo de conteúdo',
+  titulo: 'Título da página', redirecionou: 'Redirecionou',
+  historico_redirecionamentos: 'Redirecionamentos',
+  // YouTube
+  title: 'Título', channelTitle: 'Canal', publishedAt: 'Publicado em',
+  description: 'Descrição', viewCount: 'Visualizações', likeCount: 'Curtidas',
+  commentCount: 'Comentários', video_id: 'ID do vídeo',
+};
+
+// Campos internos ou códigos de controle que só poluem a ficha.
+const CAMPOS_OCULTOS = new Set([
+  'codigo_pais', 'pais', 'identificador_de_socio', 'codigo_faixa_etaria',
+  'codigo_qualificacao_socio', 'codigo_porte', 'codigo_municipio',
+  'codigo_natureza_juridica', 'cnpj_cpf_do_socio', 'cpf_representante_legal',
+  'codigo_qualificacao_representante_legal', 'nome_representante_legal',
+  'qualificacao_representante_legal',
+]);
+
+function rotulo(chave) {
+  return FIELD_LABELS[chave]
+    || chave.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function valorTexto(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+  return String(v);
+}
+
+function usarCampo(k, v) {
+  return !k.startsWith('_') && !CAMPOS_OCULTOS.has(k)
+    && v !== null && v !== undefined && v !== '';
+}
+
+function linhaFicha(rot, val) {
+  return `<div class="ficha-linha"><div class="ficha-rot">${esc(rot)}</div>` +
+         `<div class="ficha-val">${esc(val)}</div></div>`;
+}
+
+function fichaHtml(dados) {
+  if (!dados || typeof dados !== 'object') return '<p class="vazio-texto">Sem detalhes.</p>';
+  const linhas = [];
+  const blocos = [];
+  for (const [k, v] of Object.entries(dados)) {
+    if (!usarCampo(k, v)) continue;
+    if (Array.isArray(v)) {
+      if (!v.length) continue;
+      if (typeof v[0] === 'object') blocos.push(blocoLista(rotulo(k), v));
+      else linhas.push(linhaFicha(rotulo(k), v.join(', ')));
+    } else if (typeof v === 'object') {
+      blocos.push(blocoLista(rotulo(k), [v]));
+    } else {
+      linhas.push(linhaFicha(rotulo(k), valorTexto(v)));
+    }
+  }
+  const corpo = linhas.length ? `<div class="ficha">${linhas.join('')}</div>` : '';
+  return (corpo + blocos.join('')) || '<p class="vazio-texto">Sem detalhes.</p>';
+}
+
+function blocoLista(titulo, itens) {
+  const cards = itens.map((obj) => {
+    const rows = Object.entries(obj)
+      .filter(([k, v]) => usarCampo(k, v) && typeof v !== 'object')
+      .map(([k, v]) => linhaFicha(rotulo(k), valorTexto(v)))
+      .join('');
+    return rows ? `<div class="ficha-subcard">${rows}</div>` : '';
+  }).join('');
+  return cards
+    ? `<div class="ficha-bloco"><div class="ficha-bloco-tit">${esc(titulo)}</div>${cards}</div>`
+    : '';
+}
+
+function abrirDetalhe(achado) {
+  const fundo = document.createElement('div');
+  fundo.className = 'modal-fundo';
+  fundo.innerHTML =
+    `<div class="modal-cartao" role="dialog" aria-modal="true" aria-label="Detalhe do achado">
+       <div class="modal-cabecalho">
+         <h3>${esc(achado.resumo)}</h3>
+         <button class="modal-fechar" aria-label="Fechar">${SVG.fechar}</button>
+       </div>
+       <div class="modal-corpo">${fichaHtml(achado.dados)}</div>
+       ${achado.fonte_url
+          ? `<div class="modal-rodape"><a class="botao secundario pequeno" href="${esc(achado.fonte_url)}" target="_blank" rel="noopener">Abrir fonte original ${SVG.externo}</a></div>`
+          : ''}
+     </div>`;
+  document.body.appendChild(fundo);
+  requestAnimationFrame(() => fundo.classList.add('aberto'));
+
+  const fechar = () => {
+    fundo.classList.remove('aberto');
+    document.removeEventListener('keydown', aoTecla);
+    setTimeout(() => fundo.remove(), 200);
+  };
+  const aoTecla = (e) => { if (e.key === 'Escape') fechar(); };
+  document.addEventListener('keydown', aoTecla);
+  fundo.addEventListener('click', (e) => { if (e.target === fundo) fechar(); });
+  fundo.querySelector('.modal-fechar').onclick = fechar;
+}
+
+function aoClicarAchado(ev) {
+  if (ev.target.closest('a')) return;            // deixa o link "abrir fonte" funcionar
+  const linha = ev.target.closest('.linha-achado');
+  if (!linha || !linha.dataset.fonte) return;
+  const lista = estado.resultados[linha.dataset.fonte];
+  const item = lista && lista[Number(linha.dataset.idx)];
+  if (item) abrirDetalhe(item);
+}
+
 // ------------------------------------------------------------------ buscas
 async function telaBusca(painel) {
   if (!estado.fontes.length) estado.fontes = await api('/api/fontes');
@@ -191,6 +327,17 @@ async function telaBusca(painel) {
   el('botao-buscar').onclick = disparar;
   el('busca-valor').onkeydown = (e) => { if (e.key === 'Enter') disparar(); };
   el('busca-tipo').onchange = () => { el('resultados').innerHTML = ''; };
+
+  // Clique/Enter em um achado abre a ficha de detalhe (delegação no container).
+  const caixaRes = el('resultados');
+  caixaRes.onclick = aoClicarAchado;
+  caixaRes.onkeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const l = e.target.closest('.linha-achado');
+      if (l) { e.preventDefault(); aoClicarAchado(e); }
+    }
+  };
+
   el('busca-valor').focus();
 }
 
@@ -205,8 +352,9 @@ async function executarBusca(painel) {
   const alvo = estado.fontes.filter((f) => f.painel === painel && f.entrada === tipo);
   if (!alvo.length) { el('erro-busca').textContent = 'Nenhuma fonte para esse tipo de dado.'; return; }
 
+  estado.resultados = {};
   const caixa = el('resultados');
-  caixa.innerHTML = alvo.map((f) => cartaoFonte(f)).join('');
+  caixa.innerHTML = alvo.map((f, i) => cartaoFonte(f, i)).join('');
 
   // Dispara todas em paralelo; cada card se atualiza sozinho ao responder.
   alvo.forEach(async (f) => {
@@ -221,10 +369,11 @@ async function executarBusca(painel) {
         body: JSON.stringify({ fonte: f.chave, valor, caso_id: casoId }),
       });
       if (!r.resultados.length) {
-        pintarFonte(div, 'vazio', '<div class="achado">Nada encontrado.</div>', `${r.duracao_ms} ms`);
+        pintarFonte(div, 'vazio', '<div class="linha-achado sem-clique">Nada encontrado.</div>', `${r.duracao_ms} ms`);
         return;
       }
-      pintarFonte(div, 'ok', r.resultados.map(achadoHtml).join(''),
+      estado.resultados[f.chave] = r.resultados;
+      pintarFonte(div, 'ok', r.resultados.map((a, i) => achadoHtml(a, f.chave, i)).join(''),
         `${r.resultados.length} achado(s) · ${r.duracao_ms} ms`);
     } catch (e) {
       pintarFonte(div, 'erro', `<div class="achado">${esc(e.message)}</div>`);
@@ -232,13 +381,13 @@ async function executarBusca(painel) {
   });
 }
 
-function cartaoFonte(f) {
-  return `<div class="cartao cartao-fonte rodando" data-fonte="${f.chave}">
+function cartaoFonte(f, i = 0) {
+  return `<div class="cartao cartao-fonte rodando" data-fonte="${f.chave}" style="animation-delay:${i * 55}ms">
     <div class="cabecalho-fonte">
       <strong>${esc(f.nome)}</strong>
       <span class="etiqueta" data-estado><span class="girando"></span></span>
     </div>
-    <p style="color:var(--texto-fraco);font-size:12px;margin:0 0 10px">${esc(f.descricao)}</p>
+    <p class="fonte-descricao">${esc(f.descricao)}</p>
     <div data-corpo></div>
   </div>`;
 }
@@ -252,14 +401,16 @@ function pintarFonte(div, estadoNovo, html, rotulo) {
   div.querySelector('[data-corpo]').innerHTML = html;
 }
 
-function achadoHtml(a) {
+function achadoHtml(a, fonte, idx) {
+  const temFicha = a.dados && Object.keys(a.dados).some((k) => !k.startsWith('_'));
   const link = a.fonte_url
-    ? ` <a href="${esc(a.fonte_url)}" target="_blank" rel="noopener">abrir fonte ↗</a>` : '';
-  return `<div class="achado">
-    <div>${esc(a.resumo)}${link}</div>
-    <details><summary>dados brutos</summary>
-      <div class="bruto">${esc(JSON.stringify(a.dados, null, 2))}</div>
-    </details>
+    ? `<a class="achado-link" href="${esc(a.fonte_url)}" target="_blank" rel="noopener">abrir fonte ${SVG.externo}</a>`
+    : '';
+  const ver = temFicha ? `<span class="ver-detalhe">ver ficha ${SVG.chevron}</span>` : '';
+  return `<div class="linha-achado${temFicha ? '' : ' sem-clique'}" data-fonte="${esc(fonte)}" data-idx="${idx}"` +
+         `${temFicha ? ' role="button" tabindex="0"' : ''}>
+    <div class="linha-achado-texto">${esc(a.resumo)}</div>
+    <div class="linha-achado-acoes">${link}${ver}</div>
   </div>`;
 }
 
